@@ -447,6 +447,7 @@ where
     /// case that new batches can be introduced to the pile of mergeable batches, it gets on that.
     #[inline(never)]
     fn consider_merges(&mut self) {
+        println!("consider_merges");
 
         // TODO: Consider merging pending batches before introducing them.
         // TODO: We could use a `VecDeque` here to draw from the front and append to the back.
@@ -491,6 +492,7 @@ where
     /// it can also be used to artificially fuel the computation by supplying
     /// empty batches at non-trivial indices, to move merges along.
     pub fn introduce_batch(&mut self, batch: Option<B>, batch_index: usize) {
+        println!("introduce_batch at index: {batch_index}");
 
         // Step 0.  Determine an amount of fuel to use for the computation.
         //
@@ -574,6 +576,7 @@ where
     /// we should not introduce more virtual records than 2^index, as that
     /// is the amount of excess fuel we have budgeted for completing merges.
     fn roll_up(&mut self, index: usize) {
+        println!("roll_up to index: {index}");
 
         // Ensure entries sufficient for `index`.
         while self.merging.len() <= index {
@@ -610,6 +613,8 @@ where
     /// so in order to maintain fewer batches on average (at the risk of completing
     /// merges of large batches later, but tbh probably not much later).
     pub fn apply_fuel(&mut self, fuel: &mut isize) {
+        println!("apply_fuel: {fuel}");
+
         // For the moment our strategy is to apply fuel independently to each merge
         // in progress, rather than prioritizing small merges. This sounds like a
         // great idea, but we need better accounting in place to ensure that merges
@@ -642,6 +647,7 @@ where
     /// This is a non-public internal method that can panic if we try and insert into a
     /// layer which already contains two batches (and is still in the process of merging).
     fn insert_at(&mut self, batch: Option<B>, index: usize) {
+        println!("insert_at index {index}");
         // Ensure the spine is large enough.
         while self.merging.len() <= index {
             self.merging.push(MergeState::Vacant);
@@ -696,6 +702,7 @@ where
 
     /// Attempts to draw down large layers to size appropriate layers.
     fn tidy_layers(&mut self) {
+        println!("tidy_layers");
 
         // If the largest layer is complete (not merging), we can attempt
         // to draw it down to the next layer. This is permitted if we can
@@ -858,6 +865,7 @@ impl<B: Batch> MergeState<B> where B::Time: Eq {
     /// option exists purely for bookkeeping purposes, and no computation
     /// is performed to merge the two batches.
     fn begin_merge(batch1: Option<B>, batch2: Option<B>, compaction_frontier: Option<AntichainRef<B::Time>>) -> MergeState<B> {
+        println!("begin_merge, batch1.is_some(): {:?}, begin2.is_some(): {:?}", batch1.is_some(), batch2.is_some());
         let variant =
         match (batch1, batch2) {
             (Some(batch1), Some(batch2)) => {
@@ -903,6 +911,7 @@ impl<B: Batch> MergeVariant<B> {
         if let MergeVariant::InProgress(b1,b2,mut merge) = variant {
             merge.work(&b1,&b2,fuel);
             if *fuel > 0 {
+                println!("merge done!");
                 *self = MergeVariant::Complete(Some((merge.done(), Some((b1,b2)))));
             }
             else {
